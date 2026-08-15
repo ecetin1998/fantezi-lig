@@ -1,0 +1,17 @@
+[
+  {"id": "sengezer", "name": "Muhammed Şengezer", "team": "Başakşehir", "pos": "GK", "role": "starter"},
+  {"id": "fofana", "name": "Yahia Fofana", "team": "Çaykur Rizespor", "pos": "GK", "role": "bench"},
+  {"id": "hadergjonaj", "name": "Florent Hadergjonaj", "team": "Alanyaspor", "pos": "DEF", "role": "starter"},
+  {"id": "operi", "name": "Christopher Opéri", "team": "Başakşehir", "pos": "DEF", "role": "starter"},
+  {"id": "eminbayram", "name": "Emin Bayram", "team": "Başakşehir", "pos": "DEF", "role": "starter"},
+  {"id": "sallai", "name": "Roland Sallai", "team": "Galatasaray", "pos": "DEF", "role": "starter"},
+  {"id": "andzouana", "name": "Yhoan Andzouana", "team": "Konyaspor", "pos": "DEF", "role": "bench"},
+  {"id": "orkunkokcu", "name": "Orkun Kökçü", "team": "Beşiktaş", "pos": "MID", "role": "starter"},
+  {"id": "sara", "name": "Gabriel Sara", "team": "Galatasaray", "pos": "MID", "role": "starter"},
+  {"id": "aralsimsir", "name": "Doğuhan Aral Şimşir", "team": "Trabzonspor", "pos": "MID", "role": "starter"},
+  {"id": "greenwood", "name": "Mason Greenwood", "team": "Fenerbahçe", "pos": "MID", "role": "starter"},
+  {"id": "laci", "name": "Qazim Laçi", "team": "Çaykur Rizespor", "pos": "MID", "role": "bench"},
+  {"id": "talisca", "name": "Anderson Talisca", "team": "Fenerbahçe", "pos": "FWD", "role": "starter", "captain": true},
+  {"id": "osimhen", "name": "Victor Osimhen", "team": "Galatasaray", "pos": "FWD", "role": "starter", "vice": true},
+  {"id": "oh", "name": "Oh Hyeon-gyu", "team": "Beşiktaş", "pos": "FWD", "role": "bench"}
+]
