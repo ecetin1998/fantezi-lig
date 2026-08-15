@@ -194,7 +194,18 @@ def _api_headers():
 def _api_get(path, params):
     r = requests.get(f"{APISPORTS_BASE}{path}", headers=_api_headers(), params=params, timeout=20)
     r.raise_for_status()
-    return r.json()
+    data = r.json()
+    errs = data.get("errors")
+    if errs:
+        if isinstance(errs, dict) and errs:
+            msg = "; ".join(f"{k}: {v}" for k, v in errs.items())
+        elif isinstance(errs, list) and errs:
+            msg = "; ".join(str(e) for e in errs)
+        else:
+            msg = None
+        if msg:
+            raise RuntimeError(f"API hatası: {msg}")
+    return data
 
 def get_league_id():
     if "sl_league_id" in st.session_state:
@@ -210,16 +221,34 @@ def get_league_id():
     st.session_state["sl_league_id"] = league_id
     return league_id
 
+def get_available_rounds():
+    if "sl_rounds" in st.session_state:
+        return st.session_state["sl_rounds"]
+    league_id = get_league_id()
+    data = _api_get("/fixtures/rounds", {"league": league_id, "season": APISPORTS_SEASON})
+    rounds = data.get("response", [])
+    st.session_state["sl_rounds"] = rounds
+    return rounds
+
+def round_label_for(round_no):
+    import re
+    rounds = get_available_rounds()
+    for label in rounds:
+        m = re.search(r"(\d+)\s*$", label)
+        if m and int(m.group(1)) == int(round_no):
+            return label
+    return None
+
 def get_round_fixtures(round_no):
     cache_key = f"fixtures_round_{round_no}"
     if cache_key in st.session_state:
         return st.session_state[cache_key]
+    label = round_label_for(round_no)
+    if label is None:
+        st.session_state[cache_key] = []
+        return []
     league_id = get_league_id()
-    data = _api_get("/fixtures", {
-        "league": league_id,
-        "season": APISPORTS_SEASON,
-        "round": f"Regular Season - {round_no}",
-    })
+    data = _api_get("/fixtures", {"league": league_id, "season": APISPORTS_SEASON, "round": label})
     fixtures = data.get("response", [])
     st.session_state[cache_key] = fixtures
     return fixtures
@@ -448,11 +477,22 @@ with tab_giris:
     )
 
     if apisports_enabled():
+        with st.expander("🔧 API Teşhis"):
+            try:
+                league_id = get_league_id()
+                rounds = get_available_rounds()
+                st.write(f"Lig ID: {league_id}")
+                st.write(f"Bulunan hafta sayısı: {len(rounds)}")
+                if rounds:
+                    st.write(f"İlk: {rounds[0]} — Son: {rounds[-1]}")
+            except Exception as e:
+                st.error(f"Teşhis başarısız: {e}")
+
         if st.button("🔄 Bu Haftayı API'den Otomatik Çek", type="secondary"):
             with st.spinner("İstatistikler çekiliyor..."):
                 try:
                     fetched, msg = auto_fetch_week(week_no, squad)
-                except requests.exceptions.RequestException as e:
+                except (requests.exceptions.RequestException, RuntimeError) as e:
                     fetched, msg = {}, f"API isteği başarısız: {e}"
                 for pid, s in fetched.items():
                     st.session_state[f"min_{week_no}_{pid}"] = s["minutes"]
@@ -570,7 +610,7 @@ with tab_lig:
             with st.spinner("Lig genelindeki tüm maçlar taranıyor, bu biraz sürebilir..."):
                 try:
                     league_results, err = fetch_league_wide_week(lig_hafta, squad)
-                except requests.exceptions.RequestException as e:
+                except (requests.exceptions.RequestException, RuntimeError) as e:
                     league_results, err = [], f"API isteği başarısız: {e}"
                 st.session_state["lig_results"] = league_results
                 st.session_state["lig_err"] = err
