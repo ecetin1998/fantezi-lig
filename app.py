@@ -6,6 +6,66 @@ import requests
 
 st.set_page_config(page_title="TFF Fantezi Takip", page_icon="⚽", layout="wide")
 
+st.markdown("""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap');
+
+html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
+h1, h2, h3 { font-family: 'Oswald', sans-serif !important; letter-spacing: 0.3px; }
+
+.stApp {
+  background: linear-gradient(180deg, #0B1F3A 0%, #0E2A4A 100%);
+}
+[data-testid="stHeader"] { background: transparent; }
+
+h1 { color: #F5B841 !important; text-transform: uppercase; }
+h2, h3 { color: #EAF1FB !important; }
+p, span, label, .stMarkdown { color: #D7E2F0; }
+
+[data-testid="stTabs"] button {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 600;
+  color: #B9C7DC;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+[data-testid="stTabs"] button[aria-selected="true"] {
+  color: #F5B841 !important;
+  border-bottom-color: #F5B841 !important;
+}
+
+[data-testid="stMetric"] {
+  background: rgba(245, 184, 65, 0.08);
+  border: 1px solid rgba(245, 184, 65, 0.35);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+[data-testid="stMetricValue"] { color: #F5B841 !important; font-family: 'Oswald', sans-serif; }
+[data-testid="stMetricLabel"] { color: #B9C7DC !important; }
+
+.stButton button {
+  background: #F5B841 !important;
+  color: #0B1F3A !important;
+  font-weight: 700 !important;
+  border-radius: 8px !important;
+  border: none !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.stButton button:hover { background: #ffcb63 !important; }
+
+[data-testid="stExpander"] {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+}
+
+[data-testid="stDataFrame"] { border-radius: 8px; overflow: hidden; }
+
+hr { border-color: rgba(255,255,255,0.1) !important; }
+</style>
+""", unsafe_allow_html=True)
+
 DATA_DIR = "data"
 WEEKS_FILE = os.path.join(DATA_DIR, "weeks.json")
 SQUAD_FILE = os.path.join(DATA_DIR, "squad.json")
@@ -13,6 +73,10 @@ SQUAD_FILE = os.path.join(DATA_DIR, "squad.json")
 GITHUB_REPO = st.secrets.get("GITHUB_REPO", "")   # ör: "kullaniciadi/tff-fantezi-takip"
 GITHUB_TOKEN = st.secrets.get("GITHUB_TOKEN", "")
 GITHUB_BRANCH = st.secrets.get("GITHUB_BRANCH", "main")
+
+APISPORTS_KEY = st.secrets.get("APISPORTS_KEY", "")
+APISPORTS_SEASON = int(st.secrets.get("APISPORTS_SEASON", 2026))
+APISPORTS_BASE = "https://v3.football.api-sports.io"
 
 DEFAULT_SQUAD = [
     {"id": "sengezer", "name": "Muhammed Şengezer", "team": "Başakşehir", "pos": "GK", "role": "starter"},
@@ -119,6 +183,167 @@ def save_weeks(weeks):
     st.cache_data.clear()
     return ok
 
+# ---------- API-Football (otomatik istatistik çekme) ----------
+
+def apisports_enabled():
+    return bool(APISPORTS_KEY)
+
+def _api_headers():
+    return {"x-apisports-key": APISPORTS_KEY}
+
+def _api_get(path, params):
+    r = requests.get(f"{APISPORTS_BASE}{path}", headers=_api_headers(), params=params, timeout=20)
+    r.raise_for_status()
+    return r.json()
+
+def get_league_id():
+    if "sl_league_id" in st.session_state:
+        return st.session_state["sl_league_id"]
+    data = _api_get("/leagues", {"name": "Super Lig", "country": "Turkey"})
+    league_id = None
+    for item in data.get("response", []):
+        if item.get("league", {}).get("type") == "League":
+            league_id = item["league"]["id"]
+            break
+    if league_id is None:
+        league_id = 203  # bilinen Süper Lig id'si, arama başarısız olursa yedek
+    st.session_state["sl_league_id"] = league_id
+    return league_id
+
+def get_round_fixtures(round_no):
+    cache_key = f"fixtures_round_{round_no}"
+    if cache_key in st.session_state:
+        return st.session_state[cache_key]
+    league_id = get_league_id()
+    data = _api_get("/fixtures", {
+        "league": league_id,
+        "season": APISPORTS_SEASON,
+        "round": f"Regular Season - {round_no}",
+    })
+    fixtures = data.get("response", [])
+    st.session_state[cache_key] = fixtures
+    return fixtures
+
+def get_fixture_players(fixture_id):
+    cache_key = f"fixture_players_{fixture_id}"
+    if cache_key in st.session_state:
+        return st.session_state[cache_key]
+    data = _api_get("/fixtures/players", {"fixture": fixture_id})
+    result = data.get("response", [])
+    st.session_state[cache_key] = result
+    return result
+
+TR_MAP = str.maketrans({"ç": "c", "ş": "s", "ğ": "g", "ü": "u", "ö": "o", "ı": "i", "İ": "i",
+                         "Ç": "c", "Ş": "s", "Ğ": "g", "Ü": "u", "Ö": "o"})
+
+def normalize(s):
+    s = (s or "").translate(TR_MAP).lower()
+    return "".join(ch for ch in s if ch.isalnum())
+
+def find_team_fixture(team_name, fixtures):
+    target = normalize(team_name)
+    for fx in fixtures:
+        home = normalize(fx["teams"]["home"]["name"])
+        away = normalize(fx["teams"]["away"]["name"])
+        if target in home or home in target or target in away or away in target:
+            return fx["fixture"]["id"]
+    return None
+
+def find_player_in_fixture(fixture_players, player_name):
+    target = normalize(player_name)
+    target_last = normalize(player_name.split()[-1])
+    for team_block in fixture_players:
+        for entry in team_block.get("players", []):
+            pname = normalize(entry.get("player", {}).get("name", ""))
+            if target == pname or target in pname or pname in target or target_last in pname:
+                stats = entry.get("statistics", [{}])[0]
+                return stats
+    return None
+
+def map_api_stats(stats):
+    games = stats.get("games") or {}
+    goals = stats.get("goals") or {}
+    cards = stats.get("cards") or {}
+    penalty = stats.get("penalty") or {}
+    return {
+        "minutes": games.get("minutes") or 0,
+        "goals": goals.get("total") or 0,
+        "assists": goals.get("assists") or 0,
+        "conceded": goals.get("conceded") or 0,
+        "saves": goals.get("saves") or 0,
+        "penSaved": (penalty.get("saved") or 0) > 0,
+        "penMissed": (penalty.get("missed") or 0) > 0,
+        "yellow": cards.get("yellow") or 0,
+        "red": (cards.get("red") or 0) + (cards.get("yellowred") or 0),
+        "ownGoal": False,  # API bu alanı doğrudan vermiyor, gerekirse elle işaretle
+        "bonus": 0,
+    }
+
+def auto_fetch_week(round_no, squad):
+    fixtures = get_round_fixtures(round_no)
+    if not fixtures:
+        return {}, "Bu hafta için fikstür bulunamadı (round numarasını veya sezonu kontrol et)."
+    results = {}
+    misses = []
+    for p in squad:
+        team = p.get("team", "")
+        fid = find_team_fixture(team, fixtures)
+        if fid is None:
+            misses.append(p["name"])
+            continue
+        fixture_players = get_fixture_players(fid)
+        stat = find_player_in_fixture(fixture_players, p["name"])
+        if stat is None:
+            misses.append(p["name"])
+            continue
+        results[p["id"]] = map_api_stats(stat)
+    msg = None
+    if misses:
+        msg = "Şunlar için veri bulunamadı, elle kontrol et: " + ", ".join(misses)
+    return results, msg
+
+API_POS_MAP = {"G": "GK", "D": "DEF", "M": "MID", "F": "FWD"}
+
+def squad_name_set(squad):
+    return {normalize(p["name"]) for p in squad}
+
+def fetch_league_wide_week(round_no, squad):
+    fixtures = get_round_fixtures(round_no)
+    if not fixtures:
+        return [], "Bu hafta için fikstür bulunamadı."
+    my_names = squad_name_set(squad)
+    results = []
+    for fx in fixtures:
+        fid = fx["fixture"]["id"]
+        try:
+            fixture_players = get_fixture_players(fid)
+        except requests.exceptions.RequestException:
+            continue
+        for team_block in fixture_players:
+            team_name = team_block.get("team", {}).get("name", "")
+            for entry in team_block.get("players", []):
+                pname = entry.get("player", {}).get("name", "")
+                if normalize(pname) in my_names:
+                    continue  # kendi kadronda olan oyuncuyu önerme
+                stats_list = entry.get("statistics", [{}])
+                if not stats_list:
+                    continue
+                stats = stats_list[0]
+                games = stats.get("games") or {}
+                minutes = games.get("minutes") or 0
+                if minutes <= 0:
+                    continue  # oynamayanları listeleme
+                api_pos = (games.get("position") or "")[:1].upper()
+                pos = API_POS_MAP.get(api_pos, "MID")
+                mapped = map_api_stats(stats)
+                pts = calc_points(pos, mapped)
+                results.append({
+                    "Oyuncu": pname, "Takım": team_name, "Mevki": pos,
+                    "Dakika": minutes, "Puan": pts,
+                })
+    results.sort(key=lambda r: r["Puan"], reverse=True)
+    return results, None
+
 # ---------- Scoring ----------
 
 def calc_points(pos, s):
@@ -188,8 +413,8 @@ if not github_enabled():
         icon="⚠️",
     )
 
-tab_kadro, tab_giris, tab_gecmis, tab_toplam = st.tabs(
-    ["Kadro", "Hafta Girişi", "Geçmiş", "Sezon Toplamı"]
+tab_kadro, tab_giris, tab_gecmis, tab_toplam, tab_lig = st.tabs(
+    ["Kadro", "Hafta Girişi", "Geçmiş", "Sezon Toplamı", "Öneriler"]
 )
 
 # --- Kadro ---
@@ -221,6 +446,34 @@ with tab_giris:
         format_func=lambda k: CARD_LABELS[k],
         index=list(CARD_LABELS.keys()).index(existing.get("card", "none")),
     )
+
+    if apisports_enabled():
+        if st.button("🔄 Bu Haftayı API'den Otomatik Çek", type="secondary"):
+            with st.spinner("İstatistikler çekiliyor..."):
+                try:
+                    fetched, msg = auto_fetch_week(week_no, squad)
+                except requests.exceptions.RequestException as e:
+                    fetched, msg = {}, f"API isteği başarısız: {e}"
+                for pid, s in fetched.items():
+                    st.session_state[f"min_{week_no}_{pid}"] = s["minutes"]
+                    st.session_state[f"g_{week_no}_{pid}"] = s["goals"]
+                    st.session_state[f"a_{week_no}_{pid}"] = s["assists"]
+                    st.session_state[f"c_{week_no}_{pid}"] = s["conceded"]
+                    st.session_state[f"s_{week_no}_{pid}"] = s["saves"]
+                    st.session_state[f"ps_{week_no}_{pid}"] = s["penSaved"]
+                    st.session_state[f"pm_{week_no}_{pid}"] = s["penMissed"]
+                    st.session_state[f"y_{week_no}_{pid}"] = s["yellow"]
+                    st.session_state[f"r_{week_no}_{pid}"] = s["red"]
+                    st.session_state[f"og_{week_no}_{pid}"] = s["ownGoal"]
+                if fetched:
+                    st.success(f"{len(fetched)} oyuncu için veri çekildi. Aşağıdan kontrol edip kaydet.")
+                if msg:
+                    st.warning(msg)
+    else:
+        st.caption(
+            "Otomatik çekme kapalı — Streamlit Cloud Secrets'a `APISPORTS_KEY` eklersen "
+            "(api-football.com'dan ücretsiz alınabilir, günde 100 istek) bu haftayı tek tuşla çekebilirsin."
+        )
 
     st.divider()
     stats_input = {}
@@ -297,3 +550,36 @@ with tab_toplam:
     sorted_squad = sorted(squad, key=lambda p: totals.get(p["id"], 0), reverse=True)
     rows = [{"Oyuncu": p["name"], "Takım": p.get("team",""), "Mevki": p["pos"], "Toplam Puan": totals.get(p["id"], 0)} for p in sorted_squad]
     st.dataframe(rows, use_container_width=True, hide_index=True)
+
+# --- Öneriler (Lig Geneli) ---
+with tab_lig:
+    st.subheader("Bu Hafta Lig Genelinde En Çok Puan Alanlar")
+    st.caption("Kendi kadrondaki oyuncular bu listeye dahil edilmez — transfer fikri için bakabilirsin.")
+
+    if not apisports_enabled():
+        st.info(
+            "Bu özellik API-Football'a bağlı. Streamlit Cloud Secrets'a `APISPORTS_KEY` "
+            "ekledikten sonra burada aktif olur."
+        )
+    else:
+        colA, colB = st.columns([2, 1])
+        lig_hafta = colA.text_input("Hafta No", value=week_no, key="lig_hafta_input")
+        pos_filter = colB.selectbox("Mevki Filtresi", ["Tümü", "GK", "DEF", "MID", "FWD"], key="lig_pos_filter")
+
+        if st.button("🔍 Bu Haftayı Tara", type="primary", key="lig_scan_btn"):
+            with st.spinner("Lig genelindeki tüm maçlar taranıyor, bu biraz sürebilir..."):
+                try:
+                    league_results, err = fetch_league_wide_week(lig_hafta, squad)
+                except requests.exceptions.RequestException as e:
+                    league_results, err = [], f"API isteği başarısız: {e}"
+                st.session_state["lig_results"] = league_results
+                st.session_state["lig_err"] = err
+
+        league_results = st.session_state.get("lig_results", [])
+        err = st.session_state.get("lig_err")
+        if err:
+            st.warning(err)
+        if league_results:
+            filtered = league_results if pos_filter == "Tümü" else [r for r in league_results if r["Mevki"] == pos_filter]
+            st.dataframe(filtered[:30], use_container_width=True, hide_index=True)
+            st.caption(f"Toplam {len(filtered)} oyuncu listelendi, en iyi 30 tanesi gösteriliyor.")
