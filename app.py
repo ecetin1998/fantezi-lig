@@ -52,7 +52,32 @@ if st.button("Test Et", type="primary"):
                 lineup = content.get("lineup", {}) or content.get("lineup2", {})
                 if lineup:
                     st.success("Kadro/oyuncu stat verisi MEVCUT — bu yöntem çalışıyor!")
-                    st.json({"ornek_anahtar": list(lineup.keys())[:10]})
+                    st.json({"lineup_anahtarlari": list(lineup.keys())})
+
+                    # İlk bulabildiğimiz oyuncunun tam stat yapısını dök
+                    def find_first_player(obj):
+                        if isinstance(obj, dict):
+                            # fotmob oyuncu objesi genelde 'stats' veya 'performance' içerir
+                            if ("name" in obj or "id" in obj) and ("stats" in obj or "performance" in obj or "minutesPlayed" in obj):
+                                return obj
+                            for v in obj.values():
+                                res = find_first_player(v)
+                                if res:
+                                    return res
+                        elif isinstance(obj, list):
+                            for item in obj:
+                                res = find_first_player(item)
+                                if res:
+                                    return res
+                        return None
+
+                    sample = find_first_player(lineup)
+                    if sample:
+                        st.subheader("Örnek bir oyuncunun ham veri yapısı:")
+                        st.json(sample)
+                    else:
+                        st.warning("Oyuncu objesi otomatik bulunamadı, lineup'ın tamamını döküyorum:")
+                        st.json(lineup)
                 else:
                     st.warning("Maç metadatası geldi ama detaylı oyuncu statı (lineup) bu maçta boş olabilir. Bitmiş bir maç linkiyle tekrar dene.")
     except Exception as e:
