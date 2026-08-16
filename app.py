@@ -1,60 +1,62 @@
 """
-Fotmob erişim testi.
-Bunu Streamlit'e ayrı bir sayfa olarak koy (ya da geçici olarak app.py yerine çalıştır),
-'Test Et' butonuna bas. Amaç: Streamlit Cloud sunucusundan Fotmob'un iç API'sine
-erişilebiliyor mu görmek. Erişilirse tüm otomasyonu buna göre kurarız.
+Fotmob __NEXT_DATA__ testi (2. yöntem).
+Eski /api/matches yolu öldü ama maç SAYFASININ HTML'i içinde
+<script id="__NEXT_DATA__"> JSON bloğu var — tüm oyuncu statları orada.
+Bu script onu Streamlit Cloud'dan çekebiliyor muyuz onu test eder.
+
+Test için Galatasaray-Çorum FK (14.08.2026) maç sayfası kullanılıyor.
 """
 import streamlit as st
 import requests
 import json
+import re
 
-st.title("Fotmob Erişim Testi")
-st.caption("Amaç: Streamlit Cloud'dan Fotmob verisi çekilebiliyor mu görmek.")
+st.title("Fotmob __NEXT_DATA__ Testi")
+st.caption("Maç sayfası HTML'inden oyuncu statı çekilebiliyor mu?")
 
-DATE = st.text_input("Tarih (YYYYAAGG)", value="20260815")
+# Örnek: bir Süper Lig maç URL'si. Fotmob URL formatı: /matches/<slug>/<shortId>
+# Kullanıcı isterse kendi bulduğu bir maç linkini yapıştırabilir.
+default_url = st.text_input(
+    "Fotmob maç URL'si",
+    value="https://www.fotmob.com/matches/galatasaray-vs-corum-fk/2wj9k1",
+    help="fotmob.com'da maçı aç, adres çubuğundaki linki buraya yapıştır."
+)
 
-def try_method(name, url, headers):
-    try:
-        r = requests.get(url, headers=headers, timeout=20)
-        status = r.status_code
-        if status == 200:
-            try:
-                data = r.json()
-                leagues = data.get("leagues", [])
-                tr = [l for l in leagues if "Süper" in l.get("name","") or "Super Lig" in l.get("name","") or str(l.get("ccode",""))=="TUR"]
-                info = f"OK — {len(leagues)} lig döndü."
-                if tr:
-                    info += f" Süper Lig bulundu, {len(tr[0].get('matches',[]))} maç."
-                return True, status, info
-            except Exception as e:
-                return True, status, f"200 döndü ama JSON parse edilemedi: {e}"
-        else:
-            return False, status, r.text[:200]
-    except Exception as e:
-        return False, "EXC", str(e)
+ua = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml",
+    "Accept-Language": "tr-TR,tr;q=0.9,en;q=0.8",
+}
 
 if st.button("Test Et", type="primary"):
-    base = f"https://www.fotmob.com/api/matches?date={DATE}&timezone=Europe/Istanbul"
+    try:
+        r = requests.get(default_url, headers=ua, timeout=25)
+        st.write(f"HTTP Durum: {r.status_code}")
+        if r.status_code != 200:
+            st.error("Sayfa açılmadı. İçerik ilk 300 karakter:")
+            st.code(r.text[:300])
+        else:
+            m = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', r.text, re.DOTALL)
+            if not m:
+                st.error("__NEXT_DATA__ bloğu bulunamadı. Fotmob yapıyı değiştirmiş olabilir.")
+                st.code(r.text[:300])
+            else:
+                data = json.loads(m.group(1))
+                general = data.get("props", {}).get("pageProps", {}).get("general", {})
+                content = data.get("props", {}).get("pageProps", {}).get("content", {})
+                st.success("__NEXT_DATA__ bulundu ve parse edildi!")
+                st.write("Maç:", general.get("matchName", "?"))
+                st.write("Lig:", general.get("leagueName", "?"))
 
-    st.subheader("Yöntem 1: Düz istek (header yok)")
-    ok, status, info = try_method("plain", base, {})
-    st.write(f"Durum: {status}")
-    st.code(info)
-
-    st.subheader("Yöntem 2: Tarayıcı taklidi (User-Agent header)")
-    ua = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-        "Accept": "application/json",
-    }
-    ok, status, info = try_method("ua", base, ua)
-    st.write(f"Durum: {status}")
-    st.code(info)
-
-    st.subheader("Yöntem 3: Alternatif domain (data.fotmob.com)")
-    alt = f"https://data.fotmob.com/api/matches?date={DATE}&timezone=Europe/Istanbul"
-    ok, status, info = try_method("alt", alt, ua)
-    st.write(f"Durum: {status}")
-    st.code(info)
+                # Oyuncu statlarını bulmaya çalış
+                lineup = content.get("lineup", {}) or content.get("lineup2", {})
+                if lineup:
+                    st.success("Kadro/oyuncu stat verisi MEVCUT — bu yöntem çalışıyor!")
+                    st.json({"ornek_anahtar": list(lineup.keys())[:10]})
+                else:
+                    st.warning("Maç metadatası geldi ama detaylı oyuncu statı (lineup) bu maçta boş olabilir. Bitmiş bir maç linkiyle tekrar dene.")
+    except Exception as e:
+        st.error(f"Hata: {e}")
 
     st.divider()
-    st.info("Herhangi birinde 'Durum: 200' ve 'Süper Lig bulundu' görürsen, o yöntemle tam otomasyonu kurabiliriz. Hepsinde 403/hata dönerse Fotmob bu yolu kapatmış demektir.")
+    st.info("'__NEXT_DATA__ bulundu' + 'oyuncu stat verisi MEVCUT' görürsen: tamamen bedava otomasyonu bunun üstüne kurarım, Apify'a bile gerek kalmaz.")
