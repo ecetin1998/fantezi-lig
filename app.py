@@ -52,32 +52,55 @@ if st.button("Test Et", type="primary"):
                 lineup = content.get("lineup", {}) or content.get("lineup2", {})
                 if lineup:
                     st.success("Kadro/oyuncu stat verisi MEVCUT — bu yöntem çalışıyor!")
-                    st.json({"lineup_anahtarlari": list(lineup.keys())})
 
-                    # İlk bulabildiğimiz oyuncunun tam stat yapısını dök
-                    def find_first_player(obj):
+                    # Tüm JSON içinde detaylı stat anahtarlarını ara
+                    st.subheader("Detaylı stat anahtarları nerede?")
+                    hits = []
+
+                    def search_keys(obj, path=""):
+                        target_keys = {"minutesPlayed", "goals", "assists",
+                                        "yellowCards", "redCards", "saves",
+                                        "goalsConceded", "stats", "shotmap"}
                         if isinstance(obj, dict):
-                            # fotmob oyuncu objesi genelde 'stats' veya 'performance' içerir
-                            if ("name" in obj or "id" in obj) and ("stats" in obj or "performance" in obj or "minutesPlayed" in obj):
+                            for k, v in obj.items():
+                                if k in target_keys:
+                                    preview = str(v)[:120]
+                                    hits.append(f"{path}.{k}  =>  {preview}")
+                                search_keys(v, f"{path}.{k}")
+                        elif isinstance(obj, list):
+                            for i, item in enumerate(obj[:3]):  # ilk 3 eleman yeter
+                                search_keys(item, f"{path}[{i}]")
+
+                    search_keys(content, "content")
+                    if hits:
+                        st.code("\n".join(hits[:60]))
+                    else:
+                        st.warning("Bu anahtarlar content içinde bulunamadı. Tüm __NEXT_DATA__'da arıyorum...")
+                        search_keys(data.get("props", {}).get("pageProps", {}), "pageProps")
+                        st.code("\n".join(hits[:60]) if hits else "Hiç bulunamadı — yapı farklı.")
+
+                    # Bir oyuncunun 'stats' içeren tam objesini bulmaya çalış
+                    st.subheader("Detaylı stat içeren örnek oyuncu objesi:")
+                    def find_player_with_stats(obj):
+                        if isinstance(obj, dict):
+                            if "name" in obj and ("stats" in obj or "minutesPlayed" in obj):
                                 return obj
                             for v in obj.values():
-                                res = find_first_player(v)
-                                if res:
-                                    return res
+                                r = find_player_with_stats(v)
+                                if r:
+                                    return r
                         elif isinstance(obj, list):
                             for item in obj:
-                                res = find_first_player(item)
-                                if res:
-                                    return res
+                                r = find_player_with_stats(item)
+                                if r:
+                                    return r
                         return None
 
-                    sample = find_first_player(lineup)
-                    if sample:
-                        st.subheader("Örnek bir oyuncunun ham veri yapısı:")
-                        st.json(sample)
+                    full = find_player_with_stats(data.get("props", {}).get("pageProps", {}))
+                    if full:
+                        st.json(full)
                     else:
-                        st.warning("Oyuncu objesi otomatik bulunamadı, lineup'ın tamamını döküyorum:")
-                        st.json(lineup)
+                        st.warning("Stat içeren oyuncu objesi bulunamadı.")
                 else:
                     st.warning("Maç metadatası geldi ama detaylı oyuncu statı (lineup) bu maçta boş olabilir. Bitmiş bir maç linkiyle tekrar dene.")
     except Exception as e:
