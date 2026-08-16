@@ -8,61 +8,148 @@ st.set_page_config(page_title="TFF Fantezi Takip", page_icon="⚽", layout="wide
 
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&family=Inter:wght@400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap');
 
+:root {
+  --bg0:#0A0A14; --bg1:#120A24; --card:#171528; --card2:#1E1B33;
+  --line:rgba(255,255,255,0.08);
+  --violet:#8B5CF6; --violet2:#A78BFA; --green:#34D399; --green2:#10B981;
+  --text:#ECEAF6; --muted:#9B97B5; --amber:#FBBF24;
+}
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
-h1, h2, h3 { font-family: 'Oswald', sans-serif !important; letter-spacing: 0.3px; }
+h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; letter-spacing:-0.2px; }
 
 .stApp {
-  background: linear-gradient(180deg, #0B1F3A 0%, #0E2A4A 100%);
+  background:
+    radial-gradient(1100px 500px at 15% -10%, rgba(139,92,246,0.18), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(52,211,153,0.12), transparent 55%),
+    linear-gradient(180deg, #0A0A14 0%, #0D0A1A 100%);
 }
 [data-testid="stHeader"] { background: transparent; }
 
-h1 { color: #F5B841 !important; text-transform: uppercase; }
-h2, h3 { color: #EAF1FB !important; }
-p, span, label, .stMarkdown { color: #D7E2F0; }
+h1 {
+  background: linear-gradient(90deg, var(--violet2), var(--green));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  text-transform:uppercase; font-weight:700 !important;
+}
+h2, h3, h4 { color: var(--text) !important; }
+p, span, label, .stMarkdown, li { color: var(--text); }
 
+[data-testid="stTabs"] { border-bottom:1px solid var(--line); }
 [data-testid="stTabs"] button {
-  font-family: 'Oswald', sans-serif;
-  font-weight: 600;
-  color: #B9C7DC;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  font-family:'Space Grotesk', sans-serif; font-weight:600;
+  color: var(--muted); text-transform:uppercase; letter-spacing:0.5px; font-size:13px;
 }
 [data-testid="stTabs"] button[aria-selected="true"] {
-  color: #F5B841 !important;
-  border-bottom-color: #F5B841 !important;
+  color: var(--violet2) !important; border-bottom-color: var(--violet) !important;
 }
 
 [data-testid="stMetric"] {
-  background: rgba(245, 184, 65, 0.08);
-  border: 1px solid rgba(245, 184, 65, 0.35);
-  border-radius: 10px;
-  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(139,92,246,0.12), rgba(52,211,153,0.08));
+  border:1px solid var(--line); border-radius:14px; padding:14px 18px;
 }
-[data-testid="stMetricValue"] { color: #F5B841 !important; font-family: 'Oswald', sans-serif; }
-[data-testid="stMetricLabel"] { color: #B9C7DC !important; }
+[data-testid="stMetricValue"] {
+  background: linear-gradient(90deg, var(--violet2), var(--green));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+  font-family:'Space Grotesk', sans-serif; font-weight:700;
+}
+[data-testid="stMetricLabel"] { color: var(--muted) !important; }
 
 .stButton button {
-  background: #F5B841 !important;
-  color: #0B1F3A !important;
-  font-weight: 700 !important;
-  border-radius: 8px !important;
-  border: none !important;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background: linear-gradient(90deg, var(--violet), var(--green2)) !important;
+  color:#0A0A14 !important; font-weight:700 !important; border:none !important;
+  border-radius:12px !important; text-transform:uppercase; letter-spacing:0.4px;
+  box-shadow:0 6px 20px rgba(139,92,246,0.28);
 }
-.stButton button:hover { background: #ffcb63 !important; }
+.stButton button:hover { filter:brightness(1.1); }
 
 [data-testid="stExpander"] {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 8px;
+  background: var(--card); border:1px solid var(--line); border-radius:14px;
 }
+[data-testid="stDataFrame"] { border-radius:12px; overflow:hidden; }
+hr { border-color: var(--line) !important; }
 
-[data-testid="stDataFrame"] { border-radius: 8px; overflow: hidden; }
+/* ---- Pitch (saha) ---- */
+.pitch-wrap {
+  position:relative; width:100%; max-width:520px; margin:8px auto 4px;
+  aspect-ratio: 68/100;
+  background:
+    linear-gradient(180deg, rgba(52,211,153,0.10), rgba(139,92,246,0.06)),
+    repeating-linear-gradient(180deg, #0f2a1f 0px, #0f2a1f 48px, #123527 48px, #123527 96px);
+  border:1px solid rgba(52,211,153,0.30); border-radius:18px; overflow:hidden;
+  box-shadow: inset 0 0 60px rgba(0,0,0,0.5), 0 10px 40px rgba(0,0,0,0.4);
+}
+.pitch-wrap::before {
+  content:""; position:absolute; left:8%; right:8%; top:6%; bottom:6%;
+  border:2px solid rgba(255,255,255,0.14); border-radius:8px;
+}
+.pitch-wrap::after {
+  content:""; position:absolute; left:34%; right:34%; top:calc(50% - 40px); height:80px;
+  border:2px solid rgba(255,255,255,0.12); border-radius:50%;
+}
+.pitch-row {
+  position:absolute; left:0; right:0; display:flex; justify-content:space-evenly;
+  padding:0 6%;
+}
+.pp {
+  display:flex; flex-direction:column; align-items:center; gap:3px; width:74px; text-align:center;
+}
+.pp .dot {
+  width:44px; height:44px; border-radius:50%;
+  background: linear-gradient(135deg, var(--violet), var(--green2));
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Space Grotesk'; font-weight:700; font-size:13px; color:#0A0A14;
+  border:2px solid rgba(255,255,255,0.35); box-shadow:0 4px 14px rgba(0,0,0,0.45);
+}
+.pp .dot.c { background: linear-gradient(135deg, var(--amber), #F97316); }
+.pp .nm {
+  font-size:11px; font-weight:600; color:#fff; line-height:1.1;
+  max-width:78px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  text-shadow:0 1px 3px rgba(0,0,0,0.8);
+}
+.pp .tm { font-size:9px; color:var(--green); text-shadow:0 1px 2px rgba(0,0,0,0.8); }
+.cap-badge { font-size:9px; }
 
-hr { border-color: rgba(255,255,255,0.1) !important; }
+/* ---- Player scoreboard cards ---- */
+.pcard {
+  display:flex; align-items:center; gap:12px;
+  background: linear-gradient(135deg, var(--card), var(--card2));
+  border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin-bottom:8px;
+  transition: border-color .15s;
+}
+.pcard:hover { border-color: rgba(139,92,246,0.5); }
+.pcard.bench { opacity:0.72; }
+.pc-pos {
+  min-width:44px; height:44px; border-radius:11px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Space Grotesk'; font-weight:700; font-size:13px; color:#fff;
+}
+.pc-pos.GK { background:linear-gradient(135deg,#F59E0B,#D97706); }
+.pc-pos.DEF{ background:linear-gradient(135deg,#3B82F6,#2563EB); }
+.pc-pos.MID{ background:linear-gradient(135deg,#8B5CF6,#7C3AED); }
+.pc-pos.FWD{ background:linear-gradient(135deg,#EF4444,#DC2626); }
+.pc-body { flex:1; min-width:0; }
+.pc-name { font-family:'Space Grotesk'; font-weight:600; font-size:15px; color:#fff; }
+.pc-name .cbadge {
+  font-size:10px; font-weight:700; padding:1px 6px; border-radius:6px; margin-left:6px;
+  background:linear-gradient(135deg,var(--amber),#F97316); color:#0A0A14; vertical-align:middle;
+}
+.pc-name .vbadge {
+  font-size:10px; font-weight:700; padding:1px 6px; border-radius:6px; margin-left:6px;
+  background:rgba(255,255,255,0.15); color:#fff; vertical-align:middle;
+}
+.pc-team { font-size:12px; color:var(--muted); }
+.pc-pts {
+  font-family:'Space Grotesk'; font-weight:700; font-size:20px; flex-shrink:0;
+  background:linear-gradient(90deg,var(--violet2),var(--green));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.pc-bar-wrap { height:5px; background:rgba(255,255,255,0.07); border-radius:3px; margin-top:6px; overflow:hidden; }
+.pc-bar { height:100%; background:linear-gradient(90deg,var(--violet),var(--green)); border-radius:3px; }
+.section-eyebrow {
+  font-family:'Space Grotesk'; font-size:12px; font-weight:600; letter-spacing:1.5px;
+  text-transform:uppercase; color:var(--violet2); margin:18px 0 8px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -101,6 +188,20 @@ DEFAULT_SQUAD = [
 ]
 FORMATION = "4-3-3"
 POS_LABEL = {"GK": "Kaleci", "DEF": "Defans", "MID": "Orta Saha", "FWD": "Forvet"}
+
+# Formasyon -> her hat için oyuncu sayısı (DEF, MID, FWD)
+FORMATIONS = {
+    "3-5-2": (3, 5, 2),
+    "3-4-3": (3, 4, 3),
+    "4-3-3": (4, 3, 3),
+    "4-4-2": (4, 4, 2),
+    "4-5-1": (4, 5, 1),
+    "5-4-1": (5, 4, 1),
+    "5-3-2": (5, 3, 2),
+    "5-2-3": (5, 2, 3),
+}
+# Sahada dikey konum (üstten % olarak): FWD üstte, GK altta
+ROW_Y = {"FWD": 14, "MID": 40, "DEF": 66, "GK": 88}
 GOAL_PTS = {"GK": 10, "DEF": 6, "MID": 5, "FWD": 4}
 CARD_LABELS = {
     "none": "Yok",
@@ -513,7 +614,7 @@ squad = load_squad()
 weeks = load_weeks()
 
 st.title("⚽ TFF Fantezi Takip")
-st.caption(f"2026-27 Süper Lig · {len(squad)} Oyuncu · {FORMATION}")
+st.caption(f"2026-27 Süper Lig · {len(squad)} Oyuncu Kadro · Fotmob'dan otomatik puanlama")
 
 if not github_enabled():
     st.warning(
@@ -528,22 +629,106 @@ tab_kadro, tab_giris, tab_gecmis, tab_toplam, tab_lig = st.tabs(
 )
 
 # --- Kadro ---
+def render_pitch(starters, formation):
+    """Seçili formasyona göre oyuncuları yeşil saha üstünde konumlandırır."""
+    def_n, mid_n, fwd_n = FORMATIONS.get(formation, (4, 3, 3))
+    gk = [p for p in starters if p["pos"] == "GK"]
+    de = [p for p in starters if p["pos"] == "DEF"]
+    mi = [p for p in starters if p["pos"] == "MID"]
+    fw = [p for p in starters if p["pos"] == "FWD"]
+
+    rows_html = ""
+    for pos, players in [("FWD", fw), ("MID", mi), ("DEF", de), ("GK", gk)]:
+        if not players:
+            continue
+        y = ROW_Y[pos]
+        cells = ""
+        for p in players:
+            initials = "".join([w[0] for w in p["name"].split()[:2]]).upper()
+            dot_cls = "dot c" if p.get("captain") else "dot"
+            cap = "<span class='cap-badge'>©</span>" if p.get("captain") else ("<span class='cap-badge'>Ⓥ</span>" if p.get("vice") else "")
+            cells += (
+                f"<div class='pp'>"
+                f"<div class='{dot_cls}'>{initials}</div>"
+                f"<div class='nm'>{p['name'].split()[-1]} {cap}</div>"
+                f"<div class='tm'>{p.get('team','')}</div>"
+                f"</div>"
+            )
+        rows_html += f"<div class='pitch-row' style='top:{y}%'>{cells}</div>"
+    return f"<div class='pitch-wrap'>{rows_html}</div>"
+
+
+def pcard_html(p, pts=None, maxpts=1, bench=False):
+    cbadge = "<span class='cbadge'>C</span>" if p.get("captain") else ("<span class='vbadge'>VC</span>" if p.get("vice") else "")
+    pts_html = ""
+    if pts is not None:
+        width = int((pts / maxpts) * 100) if maxpts > 0 else 0
+        width = max(0, min(100, width))
+        pts_html = (
+            f"<div class='pc-pts'>{pts}</div>"
+        )
+        bar = f"<div class='pc-bar-wrap'><div class='pc-bar' style='width:{width}%'></div></div>"
+    else:
+        bar = ""
+    return (
+        f"<div class='pcard {'bench' if bench else ''}'>"
+        f"<div class='pc-pos {p['pos']}'>{p['pos']}</div>"
+        f"<div class='pc-body'>"
+        f"<div class='pc-name'>{p['name']}{cbadge}</div>"
+        f"<div class='pc-team'>{p.get('team','')}</div>"
+        f"{bar}"
+        f"</div>"
+        f"{pts_html}"
+        f"</div>"
+    )
+
+
 with tab_kadro:
     starters = [p for p in squad if p["role"] == "starter"]
     bench = [p for p in squad if p["role"] == "bench"]
 
-    st.subheader(f"İlk 11 · {FORMATION}")
-    cols = st.columns(4)
-    for i, pos in enumerate(["GK", "DEF", "MID", "FWD"]):
-        with cols[i]:
-            st.markdown(f"**{POS_LABEL[pos]}**")
-            for p in [x for x in starters if x["pos"] == pos]:
-                tag = " 🅲" if p.get("captain") else (" 🆅" if p.get("vice") else "")
-                st.write(f"- **{p['name']}**{tag}  \n  <span style='color:gray;font-size:0.85em;'>{p.get('team','')}</span>", unsafe_allow_html=True)
+    # Formasyon seçimi (her hafta değişebilir)
+    saved_formation = st.session_state.get("formation", FORMATION)
+    formation = st.selectbox(
+        "Diziliş",
+        options=list(FORMATIONS.keys()),
+        index=list(FORMATIONS.keys()).index(saved_formation) if saved_formation in FORMATIONS else 2,
+    )
+    st.session_state["formation"] = formation
 
-    st.subheader("Yedekler")
-    st.write(", ".join(f"{p['name']} ({p.get('team','')})" for p in bench))
-    st.caption("Kaptan puanı varsayılan x2 sayılır; Hafta Girişi'nde güç kartıyla x3/x4'e çıkarabilirsin.")
+    # Uyarı: seçilen formasyon kadrodaki oyuncu dağılımına uyuyor mu?
+    def_n, mid_n, fwd_n = FORMATIONS[formation]
+    have = {
+        "DEF": len([p for p in starters if p["pos"] == "DEF"]),
+        "MID": len([p for p in starters if p["pos"] == "MID"]),
+        "FWD": len([p for p in starters if p["pos"] == "FWD"]),
+    }
+    if (have["DEF"], have["MID"], have["FWD"]) != (def_n, mid_n, fwd_n):
+        st.caption(
+            f"ℹ️ Seçtiğin diziliş {def_n}-{mid_n}-{fwd_n} ama ilk 11'inde "
+            f"{have['DEF']} def / {have['MID']} orta / {have['FWD']} forvet var. "
+            "Saha yine de mevcut oyuncularla çiziliyor."
+        )
+
+    st.markdown(render_pitch(starters, formation), unsafe_allow_html=True)
+
+    # Sezon toplam puanlarını çek (bar için)
+    season_totals = {p["id"]: 0 for p in squad}
+    for wk, wdata in weeks.items():
+        for pid, pts in wdata.get("points", {}).items():
+            season_totals[pid] = season_totals.get(pid, 0) + pts
+    max_total = max(season_totals.values()) if season_totals and max(season_totals.values()) > 0 else 1
+
+    st.markdown("<div class='section-eyebrow'>İlk 11</div>", unsafe_allow_html=True)
+    order = {"GK": 0, "DEF": 1, "MID": 2, "FWD": 3}
+    for p in sorted(starters, key=lambda x: order.get(x["pos"], 9)):
+        st.markdown(pcard_html(p, season_totals.get(p["id"], 0), max_total), unsafe_allow_html=True)
+
+    st.markdown("<div class='section-eyebrow'>Yedekler</div>", unsafe_allow_html=True)
+    for p in sorted(bench, key=lambda x: order.get(x["pos"], 9)):
+        st.markdown(pcard_html(p, season_totals.get(p["id"], 0), max_total, bench=True), unsafe_allow_html=True)
+
+    st.caption("Puan çubukları sezon toplamına göredir. Kaptan x2 sayılır; Hafta Girişi'nde güç kartıyla x3/x4 yapabilirsin.")
 
 # --- Hafta Girişi ---
 with tab_giris:
@@ -653,8 +838,28 @@ with tab_toplam:
     c3.metric("Haftalık Ortalama", round(season_total / len(weeks), 1) if weeks else 0)
 
     sorted_squad = sorted(squad, key=lambda p: totals.get(p["id"], 0), reverse=True)
-    rows = [{"Oyuncu": p["name"], "Takım": p.get("team",""), "Mevki": p["pos"], "Toplam Puan": totals.get(p["id"], 0)} for p in sorted_squad]
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+    max_total = max([totals.get(p["id"], 0) for p in sorted_squad], default=1) or 1
+
+    st.markdown("<div class='section-eyebrow'>Oyuncu Sıralaması</div>", unsafe_allow_html=True)
+    medals = {0: "🥇", 1: "🥈", 2: "🥉"}
+    for i, p in enumerate(sorted_squad):
+        pts = totals.get(p["id"], 0)
+        rank = medals.get(i, f"{i+1}.")
+        cbadge = "<span class='cbadge'>C</span>" if p.get("captain") else ("<span class='vbadge'>VC</span>" if p.get("vice") else "")
+        width = max(0, min(100, int((pts / max_total) * 100)))
+        st.markdown(
+            f"<div class='pcard'>"
+            f"<div class='pc-pos {p['pos']}' style='font-size:16px;'>{rank}</div>"
+            f"<div class='pc-body'>"
+            f"<div class='pc-name'>{p['name']}{cbadge}"
+            f"<span style='color:var(--muted);font-weight:400;font-size:12px;'> · {p['pos']}</span></div>"
+            f"<div class='pc-team'>{p.get('team','')}</div>"
+            f"<div class='pc-bar-wrap'><div class='pc-bar' style='width:{width}%'></div></div>"
+            f"</div>"
+            f"<div class='pc-pts'>{pts}</div>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
 
 # --- Öneriler (Lig Geneli) ---
 with tab_lig:
