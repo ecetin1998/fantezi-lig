@@ -20,14 +20,27 @@
    Bu ayarlanmazsa uygulama çalışır ama veriler sadece o oturumda kalır, yeniden
    başlatıldığında (Streamlit Cloud uykuya dalıp uyandığında) sıfırlanabilir.
 
-4. Mobil tarayıcından (Safari/Chrome) Streamlit Cloud linkine girip aynı şekilde
+4. **Otomatik istatistik çekme:** Ekstra kurulum GEREKMEZ. Uygulama, maç
+   istatistiklerini Fotmob'un herkese açık maç sayfalarından otomatik çeker
+   (ücretsiz, API key yok). Hafta Girişi sekmesinde "🔄 Bu Haftayı Fotmob'dan
+   Otomatik Çek" butonuna basınca o haftanın tüm Süper Lig maçları taranır,
+   kadrondaki 15 oyuncunun dakika/gol/asist/yenilen gol/kurtarış verileri
+   otomatik doldurulur. Kart ve kendi kalesine gol maç olaylarından çıkarılır;
+   nadiren eksik kalırsa elle düzeltebilirsin. Kaydetmeden önce her zaman gözden
+   geçirebilirsin.
+
+   Not: Fotmob sitesinin iç veri yapısı değişirse çekme geçici olarak bozulabilir;
+   o durumda değerleri elle girmen yeterli, uygulama yine puanı hesaplar.
+
+5. Mobil tarayıcından (Safari/Chrome) Streamlit Cloud linkine girip aynı şekilde
    kullanabilirsin, giriş yaptığın veri her cihazdan GitHub'a yazılıp oradan okunur.
 
 ## Kullanım
 
 - **Kadro**: ilk 11 + yedekler, kaptan/VC rozetli.
 - **Hafta Girişi**: hafta no yaz, güç kartı seç (Tripleks / Dört Dörtlük / Tüm Takım Sahaya),
-  her oyuncu için dakika/gol/asist/kart vb. gir, kaydet.
+  "🔄 Otomatik Çek" ile o haftanın istatistiklerini API-Football'dan çek (kurulmuşsa),
+  gözden geçir, gerekirse düzelt, kaydet.
 - **Geçmiş**: kaydedilen haftaların dökümü.
 - **Sezon Toplamı**: oyuncu bazlı ve genel toplam puan tablosu.
 
